@@ -1072,3 +1072,21 @@ func NewConn(raddr string, block BlockCrypt, dataShards, parityShards int, conn 
 	}
 	return NewConn2(udpaddr, block, dataShards, parityShards, conn)
 }
+
+// 新增Listener主动发起请求
+func (l *Listener) NewConn(raddr string) (*UDPSession, error) {
+	addr, err := net.ResolveUDPAddr("udp", raddr)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return l.NewConn2(addr)
+}
+func (l *Listener) NewConn2(addr net.Addr) (*UDPSession, error) {
+	var convid uint32
+	binary.Read(rand.Reader, binary.LittleEndian, &convid)
+	s := newUDPSession(convid, l.dataShards, l.parityShards, l, l.conn, false, addr, l.block)
+	l.sessionLock.Lock()
+	defer l.sessionLock.Unlock()
+	l.sessions[addr.String()] = s
+	return s, nil
+}
