@@ -1082,9 +1082,15 @@ func (l *Listener) NewConn(raddr string) (*UDPSession, error) {
 	return l.NewConn2(addr)
 }
 func (l *Listener) NewConn2(addr net.Addr) (*UDPSession, error) {
+	l.sessionLock.RLock()
+	s, ok := l.sessions[addr.String()]
+	l.sessionLock.RUnlock()
+	if ok {
+		return s, nil
+	}
 	var convid uint32
 	binary.Read(rand.Reader, binary.LittleEndian, &convid)
-	s := newUDPSession(convid, l.dataShards, l.parityShards, l, l.conn, false, addr, l.block)
+	s = newUDPSession(convid, l.dataShards, l.parityShards, l, l.conn, false, addr, l.block)
 	l.sessionLock.Lock()
 	defer l.sessionLock.Unlock()
 	l.sessions[addr.String()] = s
